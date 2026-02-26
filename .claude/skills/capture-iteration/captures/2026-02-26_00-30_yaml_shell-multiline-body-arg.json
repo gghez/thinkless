@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "timestamp": "2026-02-26T00:30:00Z",
+    "language": "yaml",
+    "framework": "github-actions",
+    "tools": ["gh", "wrangler", "curl"],
+    "turns_count": 6,
+    "session_duration_min": 10,
+    "trigger": "manual"
+  },
+  "problem": {
+    "description": "A GitHub Actions workflow posting a review comment via gh CLI fails with a YAML parsing error when the comment body contains a multiline shell variable.",
+    "type": "bug",
+    "error_initial": "yaml.scanner.ScannerError: while scanning a simple key — could not find expected ':'",
+    "context": "GitHub Actions run block, gh CLI --body argument, shell variable containing newlines and quotes"
+  },
+  "attempts": [
+    {
+      "turn_range": [1, 2],
+      "hypothesis": "Inject the shell variable directly into the --body argument",
+      "change": "Used --body \"## AI Review\\n\\n$REVIEW\" in the run block",
+      "result": "failed",
+      "error": "yaml.scanner.ScannerError: while scanning a simple key at line 41, column 1 — could not find expected ':'",
+      "abandoned": false,
+      "contributed_to_solution": true,
+      "why_wrong": "The $REVIEW variable expands to multiline content starting at column 0, breaking YAML block scalar parsing"
+    },
+    {
+      "turn_range": [3, 4],
+      "hypothesis": "Write the body to a temp file and pass it via --body-file",
+      "change": "Added printf '## AI Review\\n\\n%s' \"$REVIEW\" > /tmp/review-body.txt and used --body-file /tmp/review-body.txt",
+      "result": "success",
+      "abandoned": false,
+      "contributed_to_solution": true
+    }
+  ],
+  "solution": {
+    "turn_range": [3, 4],
+    "description": "Replaced --body with --body-file, writing the variable content to a temp file first. This avoids injecting multiline content directly into the YAML literal block where it can break the parser.",
+    "key_insight": "In a GitHub Actions run block, injecting a multiline shell variable into a CLI --body argument breaks YAML parsing silently — write the content to a temp file and pass it via --body-file instead.",
+    "diff_summary": "review-capture.yml: replaced --body with printf to /tmp/review-body.txt + --body-file",
+    "validated_by": "test_pass"
+  },
+  "tags": ["github-actions", "yaml", "shell", "multiline", "gh-cli", "parsing"]
+}

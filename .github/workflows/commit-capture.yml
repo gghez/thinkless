@@ -1,0 +1,57 @@
+name: Commit validated capture
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  commit:
+    if: github.event.label.name == 'capture/validated'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract and commit capture
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Extract JSON block from issue body (between ```json and ```)
+          CAPTURE_JSON=$(echo "$ISSUE_BODY" | sed -n '/^```json$/,/^```$/p' | sed '1d;$d')
+
+          # Extract capture ID from the JSON payload
+          CAPTURE_ID=$(echo "$CAPTURE_JSON" | jq -r '.capture_id')
+
+          # Write capture file
+          mkdir -p docs/captures
+          echo "$CAPTURE_JSON" > "docs/captures/$CAPTURE_ID.json"
+
+          # Commit
+          git config user.name "thinkless-bot"
+          git config user.email "bot@thinkless.dev"
+          git add "docs/captures/$CAPTURE_ID.json"
+          git commit -m "capture: add $CAPTURE_ID"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push && break
+            echo "Push attempt $i failed, retrying..."
+            sleep $((i * 2))
+          done
+
+          # Close issue with reference
+          COMMIT_SHA=$(git rev-parse HEAD)
+          gh issue close "$ISSUE_NUMBER" \
+            --repo "$REPO" \
+            --comment "Committed as \`docs/captures/$CAPTURE_ID.json\` — $COMMIT_SHA"
+
+          # Dispatch summary generation
+          gh workflow run generate-summary.yml \
+            --repo "$REPO" \
+            -f capture_id="$CAPTURE_ID"

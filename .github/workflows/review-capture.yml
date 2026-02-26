@@ -1,0 +1,43 @@
+name: Review capture
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  review:
+    if: contains(github.event.issue.labels.*.name, 'capture/pending')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Post AI review
+        env:
+          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          PAYLOAD=$(jq -n \
+            --arg body "$ISSUE_BODY" \
+            '{
+              model: "claude-haiku-4-5-20251001",
+              max_tokens: 1024,
+              messages: [{
+                role: "user",
+                content: ("You are reviewing a development capture submitted to Thinkless. A capture is a structured record of a problem/solution pair from a real development session.\n\nReview the following capture and respond with:\n1. Quality score (1-5)\n2. Is the problem clearly stated? (yes/no + comment)\n3. Is the solution actionable and reproducible? (yes/no + comment)\n4. Does the insight add value beyond the solution? (yes/no + comment)\n5. Any sensitive content (file paths, credentials, personal info)? (yes/no + details)\n6. Recommendation: APPROVE or REJECT (with reason)\n\nCapture:\n" + $body)
+              }]
+            }')
+
+          REVIEW=$(curl -s https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $CLAUDE_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d "$PAYLOAD" | jq -r '.content[0].text')
+
+          printf '## AI Review\n\n%s' "$REVIEW" > /tmp/review-body.txt
+
+          gh issue comment "$ISSUE_NUMBER" \
+            --repo "$REPO" \
+            --body-file /tmp/review-body.txt

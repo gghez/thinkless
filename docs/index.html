@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>thinkless — human/AI iteration data</title>
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="layout-page">
+
+  <!-- ── header ── -->
+  <header class="layout-header">
+    <pre class="logo">
+ _   _     _       _    _
+| |_| |__ (_)_ __ | | _| | ___  ___ ___
+| __| '_ \| | '_ \| |/ / |/ _ \/ __/ __|
+| |_| | | | | | | |   <| |  __/\__ \__ \
+ \__|_| |_|_|_| |_|_|\_\_|\___||___/___/
+</pre>
+    <p class="tagline">&gt; keep the knowledge loop alive.</p>
+    <p class="text-muted">&gt; currently works with <span class="text-accent">Claude Code</span> only.</p>
+    <div class="divider"></div>
+    <nav class="layout-nav">
+      <a href="index.html" class="nav-link active">home</a>
+      <span class="nav-sep">│</span>
+      <a href="captures.html" class="nav-link">for humans</a>
+      <span class="nav-sep">│</span>
+      <a href="training.html" class="nav-link">for models</a>
+      <span class="nav-sep">│</span>
+      <a href="mcp.html" class="nav-link">mcp server</a>
+    </nav>
+  </header>
+
+  <!-- ── problem ── -->
+  <section class="layout-section">
+    <h2 class="section-title">the problem</h2>
+    <div class="box">
+      <span class="box-label">context</span>
+      <p class="text-body">
+        LLMs were trained on the accumulated knowledge of the web — Stack Overflow threads,
+        forum debates, community docs. But by becoming the go-to answer engine, they are
+        drying up the very source that made them possible.
+      </p>
+    </div>
+
+    <div class="layout-grid-3">
+      <div class="card-surface">
+        <div class="stat-number">−70%</div>
+        <div class="stat-label">new Stack Overflow questions<br/>Mar 2023 → Dec 2024</div>
+      </div>
+      <div class="card-surface">
+        <div class="stat-number">2009</div>
+        <div class="stat-label">activity level the site<br/>has fallen back to</div>
+      </div>
+      <div class="card-surface">
+        <div class="stat-number">∅</div>
+        <div class="stat-label">middle-ground OSS libs<br/>no longer being created</div>
+      </div>
+    </div>
+
+    <p class="text-muted">
+      Fewer devs post → less quality data → future models trained on an impoverished web
+      will be weaker, especially on recent or niche questions. The loop collapses.
+    </p>
+  </section>
+
+  <!-- ── insight ── -->
+  <section class="layout-section">
+    <h2 class="section-title">the insight</h2>
+    <div class="box">
+      <span class="box-label">untapped signal</span>
+      <p class="text-body">
+        Every human+agent co-development session is a dense, structured knowledge artifact.
+        It contains the initial problem, the agent's wrong turns, the human's corrections,
+        the edge cases discovered, and the validated solution — the full reasoning trail.
+      </p>
+    </div>
+    <p class="text-body">
+      This is richer than a Stack Overflow answer. It captures <span class="text-accent">why</span>
+      things fail, not just what works. It is comparable to years of production bug enrichment
+      on a library — except it vanishes at the end of every session.
+    </p>
+  </section>
+
+  <!-- ── solution ── -->
+  <section class="layout-section">
+    <h2 class="section-title">what thinkless does</h2>
+    <div class="layout-grid-3">
+      <div class="card-surface">
+        <div class="card-title">capture</div>
+        <p class="text-muted">
+          A Claude Code skill records the full iteration automatically when a solution is reached
+          after failed attempts — problem, attempts, solution, key insight — structured as JSON.
+        </p>
+      </div>
+      <div class="card-surface">
+        <div class="card-title">publish</div>
+        <p class="text-muted">
+          Each capture is reviewed by a human operator assisted by an AI agent, then committed
+          to a public dataset — usable as training data or additional knowledge sources.
+        </p>
+      </div>
+      <div class="card-surface">
+        <div class="card-title">serve</div>
+        <p class="text-muted">
+          An MCP server exposes the dataset to any AI agent, closing the loop between
+          past sessions and future models.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── vision ── -->
+  <section class="layout-section">
+    <div class="divider"></div>
+    <p class="text-muted">
+      &gt; think of it as git for AI co-development sessions.<br/>
+      &gt; each iteration turn = a commit. the final diff = exportable training data.<br/>
+      &gt; what neither Stack Overflow nor docs ever had: the full iterative path.
+    </p>
+  </section>
+
+</div>
+
+<footer class="layout-footer">
+  <p class="footer-text">┕━ thinkless · <a href="https://github.com/gghez/thinkless" class="footer-text" style="color:var(--border)">github</a> · open dataset · 2026</p>
+</footer>
+
+</body>
+</html>

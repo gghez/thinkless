@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "timestamp": "2026-02-26T00:35:00Z",
+    "language": "yaml",
+    "framework": "github-actions",
+    "tools": ["github-actions"],
+    "turns_count": 4,
+    "session_duration_min": 5,
+    "trigger": "manual"
+  },
+  "problem": {
+    "description": "A GitHub Actions workflow fails with 'Resource not accessible by integration' when attempting to comment on issues or commit files, despite using the built-in GITHUB_TOKEN.",
+    "type": "bug",
+    "error_initial": "GraphQL: Resource not accessible by integration (addComment)",
+    "context": "GitHub Actions workflow using GITHUB_TOKEN to post issue comments and push commits"
+  },
+  "attempts": [
+    {
+      "turn_range": [1, 2],
+      "hypothesis": "Use GITHUB_TOKEN as-is without explicit permissions",
+      "change": "No permission block declared in the workflow job",
+      "result": "failed",
+      "error": "GraphQL: Resource not accessible by integration (addComment)",
+      "abandoned": false,
+      "contributed_to_solution": true,
+      "why_wrong": "Default GITHUB_TOKEN only has read access — write operations require explicit permission declarations"
+    },
+    {
+      "turn_range": [3, 4],
+      "hypothesis": "Add explicit permissions block to each job",
+      "change": "Added permissions: issues: write to review job, permissions: contents: write + issues: write to commit job",
+      "result": "success",
+      "abandoned": false,
+      "contributed_to_solution": true
+    }
+  ],
+  "solution": {
+    "turn_range": [3, 4],
+    "description": "Added explicit permissions declarations to each GitHub Actions job. The review job needs issues: write to post comments; the commit job needs both contents: write and issues: write.",
+    "key_insight": "The default GITHUB_TOKEN in GitHub Actions is read-only — workflows that write to issues or commit files will fail with 'Resource not accessible by integration' unless permissions: issues: write and/or contents: write are explicitly declared in the job.",
+    "diff_summary": "review-capture.yml and commit-capture.yml: added permissions block to each job",
+    "validated_by": "test_pass"
+  },
+  "tags": ["github-actions", "permissions", "github-token", "issues", "security", "read-only"]
+}

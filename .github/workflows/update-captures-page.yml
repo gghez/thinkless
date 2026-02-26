@@ -1,0 +1,99 @@
+name: Update captures page
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/summaries/*.md'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    # Only one run at a time. If multiple dispatches arrive concurrently
+    # (e.g. 3 generate-summary finishing at the same time), cancel the
+    # earlier ones and only keep the latest — it will have all summaries.
+    concurrency:
+      group: update-captures-page
+      cancel-in-progress: true
+    permissions:
+      contents: write
+    steps:
+      - name: Wait for concurrent summary pushes to settle
+        run: sleep 20
+
+      - uses: actions/checkout@v4
+
+      - name: Regenerate captures list
+        run: |
+          python3 << 'PYEOF'
+          import os, re
+
+          summaries_dir = "docs/summaries"
+          captures_html = "docs/captures.html"
+
+          items = []
+          for fname in sorted(os.listdir(summaries_dir)):
+              if not fname.endswith('.md'):
+                  continue
+              capture_id = fname[:-3]
+              with open(os.path.join(summaries_dir, fname)) as f:
+                  content = f.read()
+
+              title_match = re.search(r'^# (.+)$', content, re.MULTILINE)
+              title = title_match.group(1).strip() if title_match else capture_id
+
+              date_match = re.search(r'^> Captured on (.+)$', content, re.MULTILINE)
+              date = date_match.group(1).strip() if date_match else ''
+
+              items.append((date, capture_id, title))
+
+          # Sort by date descending (newest first)
+          items.sort(key=lambda x: x[0], reverse=True)
+
+          if items:
+              lines = []
+              for date, cid, title in items:
+                  lines.append(
+                      f'      <div class="capture-item">\n'
+                      f'        <span class="capture-date">{date}</span>\n'
+                      f'        <a href="#" class="capture-link" data-id="{cid}">{title}</a>\n'
+                      f'      </div>'
+                  )
+              inner = '\n'.join(lines)
+          else:
+              inner = '      <p class="text-muted">no captures yet.</p>'
+
+          new_block = (
+              '<!-- CAPTURES-LIST-START -->\n'
+              + inner + '\n'
+              + '      <!-- CAPTURES-LIST-END -->'
+          )
+
+          with open(captures_html) as f:
+              html = f.read()
+
+          updated = re.sub(
+              r'<!-- CAPTURES-LIST-START -->.*?<!-- CAPTURES-LIST-END -->',
+              new_block,
+              html,
+              flags=re.DOTALL
+          )
+
+          with open(captures_html, 'w') as f:
+              f.write(updated)
+
+          print(f"Captures page updated with {len(items)} entries.")
+          PYEOF
+
+      - name: Commit and push
+        run: |
+          git config user.name "thinkless-bot"
+          git config user.email "bot@thinkless.dev"
+          git add docs/captures.html
+          git diff --cached --quiet || git commit -m "captures: regenerate page list"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push && break
+            echo "Push attempt $i failed, retrying..."
+            sleep $((i * 2))
+          done

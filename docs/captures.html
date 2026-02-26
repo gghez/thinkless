@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>thinkless — for humans</title>
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="layout-page">
+
+  <!-- ── header ── -->
+  <header class="layout-header">
+    <pre class="logo">
+ _   _     _       _    _
+| |_| |__ (_)_ __ | | _| | ___  ___ ___
+| __| '_ \| | '_ \| |/ / |/ _ \/ __/ __|
+| |_| | | | | | | |   <| |  __/\__ \__ \
+ \__|_| |_|_|_| |_|_|\_\_|\___||___/___/
+</pre>
+    <p class="tagline">&gt; keep the knowledge loop alive.</p>
+    <p class="text-muted">&gt; currently works with <span class="text-accent">Claude Code</span> only.</p>
+    <div class="divider"></div>
+    <nav class="layout-nav">
+      <a href="index.html" class="nav-link">home</a>
+      <span class="nav-sep">│</span>
+      <a href="captures.html" class="nav-link active">for humans</a>
+      <span class="nav-sep">│</span>
+      <a href="training.html" class="nav-link">for models</a>
+      <span class="nav-sep">│</span>
+      <a href="mcp.html" class="nav-link">mcp server</a>
+    </nav>
+  </header>
+
+  <!-- ── captures list ── -->
+  <section class="layout-section">
+    <h2 class="section-title">captures</h2>
+    <p class="text-muted">validated insights from human/AI co-development sessions.</p>
+    <div id="captures-list">
+      <!-- CAPTURES-LIST-START -->
+      <p class="text-muted">no captures yet.</p>
+      <!-- CAPTURES-LIST-END -->
+    </div>
+  </section>
+
+</div>
+
+<footer class="layout-footer">
+  <p class="footer-text">┕━ thinkless · <a href="https://github.com/gghez/thinkless" class="footer-link">github</a> · open dataset · 2026</p>
+</footer>
+
+<!-- ── modal ── -->
+<div id="capture-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <button class="modal-close" id="modal-close-btn">&#x2715;</button>
+    <div id="modal-content" class="modal-content"></div>
+  </div>
+</div>
+
+<script>
+  // ── modal controls ──
+  var modal = document.getElementById('capture-modal');
+  var modalContent = document.getElementById('modal-content');
+
+  document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  function closeModal() {
+    modal.style.display = 'none';
+    modalContent.innerHTML = '';
+  }
+
+  // ── capture link click handler ──
+  document.getElementById('captures-list').addEventListener('click', function (e) {
+    var link = e.target.closest('.capture-link');
+    if (!link) return;
+    e.preventDefault();
+    openCapture(link.dataset.id);
+  });
+
+  function openCapture(id) {
+    fetch('summaries/' + id + '.md')
+      .then(function (r) {
+        if (!r.ok) throw new Error('not found');
+        return r.text();
+      })
+      .then(function (md) {
+        modalContent.innerHTML = parseMarkdown(md);
+        modal.style.display = 'flex';
+      })
+      .catch(function () {
+        modalContent.innerHTML = '<p class="text-muted">summary unavailable.</p>';
+        modal.style.display = 'flex';
+      });
+  }
+
+  // ── minimal markdown parser ──
+  // Handles: h1, h2, blockquote, hr, bold, inline code, links, paragraphs
+  function parseMarkdown(md) {
+    var html = '';
+    var lines = md.split('\n');
+    var inParagraph = false;
+
+    function closePara() {
+      if (inParagraph) { html += '</p>\n'; inParagraph = false; }
+    }
+
+    function inline(text) {
+      text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+      text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+      return text;
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+
+      if (line.startsWith('# ')) {
+        closePara();
+        html += '<h1>' + inline(line.slice(2)) + '</h1>\n';
+      } else if (line.startsWith('## ')) {
+        closePara();
+        html += '<h2>' + inline(line.slice(3)) + '</h2>\n';
+      } else if (line.startsWith('> ')) {
+        closePara();
+        html += '<blockquote>' + inline(line.slice(2)) + '</blockquote>\n';
+      } else if (line.trim() === '---') {
+        closePara();
+        html += '<hr>\n';
+      } else if (line.trim() === '') {
+        closePara();
+      } else {
+        if (!inParagraph) { html += '<p>'; inParagraph = true; } else { html += '\n'; }
+        html += inline(line);
+      }
+    }
+
+    closePara();
+    return html;
+  }
+</script>
+
+</body>
+</html>
